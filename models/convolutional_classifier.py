@@ -5,6 +5,15 @@ import torch
 import torch.nn as nn
 
 
+def get_accuracy(out, targets):
+    batch_size = out.size()[0]
+    correct_n = 0
+    for result in range(batch_size):
+        if torch.argmax(out[result]) == torch.argmax(targets[result]):
+            correct_n += 1
+    return correct_n / batch_size
+
+
 class ConvolutionalClassifier(pl.LightningModule):
     def __init__(self, hparams, train_dataset, val_dataset, test_dataset):
         super().__init__()
@@ -85,22 +94,24 @@ class ConvolutionalClassifier(pl.LightningModule):
         # flattened_images = images.view(images.shape[0], -1)
         out = self.forward(images)
         loss = nn.functional.cross_entropy(out, targets)
+        accuracy = get_accuracy(out, targets)
 
-        return loss
+        return loss, accuracy
 
     def training_step(self, batch):
-        loss = self.general_step(batch)
+        loss, _ = self.general_step(batch)
         self.log("train_loss", loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        loss = self.general_step(batch)
+        loss, _ = self.general_step(batch)
         self.log("val_loss", loss)
         return loss
 
     def test_step(self, batch, batch_idx):
-        loss = self.general_step(batch)
+        loss, accuracy = self.general_step(batch)
         self.log("test_loss", loss)
+        self.log("test_acc", accuracy)
         return loss
 
     # implement _end functions
